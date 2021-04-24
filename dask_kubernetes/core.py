@@ -215,21 +215,6 @@ class Scheduler(Pod):
         await super().close(**kwargs)
 
     async def _create_service(self):
-        service_template_dict = dask.config.get("kubernetes.scheduler-service-template")
-        self.service_template = clean_service_template(
-            make_service_from_dict(service_template_dict)
-        )
-        self.service_template.metadata.name = self.cluster_name
-        self.service_template.metadata.labels = copy.deepcopy(self.base_labels)
-
-        self.service_template.spec.selector["dask.org/cluster-name"] = self.cluster_name
-        if self.service_template.spec.type is None:
-            self.service_template.spec.type = dask.config.get(
-                "kubernetes.scheduler-service-type"
-            )
-        await self.core_api.create_namespaced_service(
-            self.namespace, self.service_template
-        )
         service = await self.core_api.read_namespaced_service(
             self.cluster_name, self.namespace
         )
@@ -251,16 +236,6 @@ class Scheduler(Pod):
         return service
 
     async def _create_pdb(self):
-        pdb_template_dict = dask.config.get("kubernetes.scheduler-pdb-template")
-        self.pdb_template = clean_pdb_template(make_pdb_from_dict(pdb_template_dict))
-        self.pdb_template.metadata.name = self.cluster_name
-        self.pdb_template.spec.labels = copy.deepcopy(self.base_labels)
-        self.pdb_template.spec.selector.match_labels[
-            "dask.org/cluster-name"
-        ] = self.cluster_name
-        await self.policy_api.create_namespaced_pod_disruption_budget(
-            self.namespace, self.pdb_template
-        )
         return await self.policy_api.read_namespaced_pod_disruption_budget(
             self.cluster_name, self.namespace
         )
