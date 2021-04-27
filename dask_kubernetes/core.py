@@ -204,14 +204,6 @@ class Scheduler(Pod):
         self.pdb = await self._create_pdb()
 
     async def close(self, **kwargs):
-        if self.service:
-            await self.core_api.delete_namespaced_service(
-                self.cluster_name, self.namespace
-            )
-        if self.pdb:
-            await self.policy_api.delete_namespaced_pod_disruption_budget(
-                self.cluster_name, self.namespace
-            )
         await super().close(**kwargs)
 
     async def _create_service(self):
