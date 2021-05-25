@@ -143,7 +143,7 @@ class Worker(Pod):
         self.pod_template.metadata.labels["dask.org/component"] = "worker"
         self.pod_template.spec.containers[0].env.append(
             kubernetes.client.V1EnvVar(
-                name="DASK_SCHEDULER_ADDRESS", value=self.scheduler
+                name="DASK_SCHEDULER_ADDRESS", value='tcp://dask.default:8786'
             )
         )
         if name is not None:
