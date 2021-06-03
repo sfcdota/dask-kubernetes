@@ -204,6 +204,10 @@ class Scheduler(Pod):
         self.pdb = await self._create_pdb()
 
     async def close(self, **kwargs):
+        if self.pdb:
+            await self.policy_api.delete_namespaced_pod_disruption_budget(
+                self.cluster_name, self.namespace
+            )
         await super().close(**kwargs)
 
     async def _create_service(self):
@@ -228,6 +232,16 @@ class Scheduler(Pod):
         return service
 
     async def _create_pdb(self):
+        pdb_template_dict = dask.config.get("kubernetes.scheduler-pdb-template")
+        self.pdb_template = clean_pdb_template(make_pdb_from_dict(pdb_template_dict))
+        self.pdb_template.metadata.name = self.cluster_name
+        self.pdb_template.spec.labels = copy.deepcopy(self.base_labels)
+        self.pdb_template.spec.selector.match_labels[
+            "dask.org/cluster-name"
+        ] = self.cluster_name
+        await self.policy_api.create_namespaced_pod_disruption_budget(
+            self.namespace, self.pdb_template
+        )
         return await self.policy_api.read_namespaced_pod_disruption_budget(
             self.cluster_name, self.namespace
         )
